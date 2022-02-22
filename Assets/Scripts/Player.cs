@@ -10,7 +10,7 @@ public class Player : MonoBehaviour
     // プレイヤーが持つ剣のオブジェクト
     public GameObject blade;
     // 剣の長さ
-    public float bladeLength;
+    public float bladeLength = 4.0f;
     // 切るオブジェクトの切り始めと切り終わりを保存する変数
     Vector3 cutStartPos, cutEndPos;
     // 剣の向きを調整するためにマウスのポジションを保存しておく変数
@@ -22,37 +22,51 @@ public class Player : MonoBehaviour
     GameObject target;
     // 直前のRaycastHitを保存する変数
     RaycastHit lastHit;
-    // クォータニオンの初期値を保存する変数
-    public Quaternion startQuat;
+    // クォータニオンの初期値と現在値を保存する変数
+    Quaternion startQuat,nowQuat;
 
-    public Text text;
+    // AudioSourceを保存する
+    AudioSource audioSource;
+    // カウントダウン、BGM、斬撃音を保存する変数
+    public AudioClip[] sounds;
+
+    public GameObject scoreText;
+    public GameObject pointText;
+    public GameObject localCanvas;
+    public GameObject countDownText;
 
     // Start is called before the first frame update
     void Start()
     {
-        //bladeLength = 4;
-        startQuat = transform.rotation;
+        // 初期の剣のクォータニオンを記憶しておく
+        startQuat = blade.transform.rotation;
+        // 現在値も設定する
+        nowQuat = startQuat;
+        // AudioSourceを取得
+        audioSource = GetComponent<AudioSource>();
+        audioSource.volume = 0.02f;
+        audioSource.PlayOneShot(sounds[0]);
+        audioSource.clip = sounds[1];
+        audioSource.PlayDelayed(3.3f);
     }
 
     // Update is called once per frame
     void Update()
     {
+        // ゲームが実行中でなければ
+        //if (!Manager.isRunningGame) return;
+
         // 左クリックを押している間true(実行)
         if (Input.GetMouseButton(0))
         {
             // マウスがクリックした座標を入れておく変数
             // 画面左下を(0,0,0)とした、xy座標が代入される(zは0)
-            Vector3 clickPos = Input.mousePosition;
-            mousePos = clickPos;
-            // ｚ座標に数値を代入することでカメラより前に表示される
-            clickPos.z = 2;
-
+            Vector3 mousePos = Input.mousePosition;
             // 画面左下を(0,0,0)とした座標をワールド座標(Transformの絶対座標)に返還して、剣のポジションに設定
-            blade.transform.position = Camera.main.ScreenToWorldPoint(clickPos);
-            //blade.transform.position.z += 2;
-
+            blade.transform.position = Camera.main.ScreenToWorldPoint(mousePos);
             // カメラからマウスクリックの場所までRayを設定
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = Camera.main.ScreenPointToRay(mousePos);
+
             // rayを剣の長さ分照射して当たったらhitに保存する
             if (Physics.Raycast(ray, out RaycastHit hit, bladeLength))
             {
@@ -67,7 +81,8 @@ public class Player : MonoBehaviour
                     // 切る対象のオブジェクトを保存
                     target = hit.collider.gameObject;
                 }
-                // Debug.Log(hit.transform.name);
+
+                // 最後のヒットを更新
                 lastHit = hit;
             }
             // もし今回rayが当たらなくて、今まで当たっていたなら（切り終わった状況）
@@ -78,53 +93,73 @@ public class Player : MonoBehaviour
                 touch = 0;
                 // 切り終わりポイントをセット
                 cutEndPos = lastHit.point;
-                if(cutStartPos == cutEndPos)
+                // もし切り始めと切り終わりが同じなら、今のマウスポジションを切り終わりのポジションにする
+                if (cutStartPos == cutEndPos)
                 {
                     cutEndPos = mousePos;
-                    Debug.Log("一緒やった");
                 }
+
                 // 剣を切った方向に傾かせる（本番切る用）
+                // 切り始めと切り終わりのポジションの差から、アークタンジェントで角度を求める
                 Vector3 range = cutEndPos - cutStartPos;
                 float angle = Mathf.Atan2(range.y, range.x) * Mathf.Rad2Deg + 90;
-                blade.transform.rotation = startQuat * Quaternion.AngleAxis(angle, Vector3.forward);
+                blade.transform.rotation = nowQuat * Quaternion.AngleAxis(angle, Vector3.forward);
 
+                // targetが不正な場合、終了
+                if (target == null) return;
                 // 二つに切り分け、leftObjectとrightObjectで受け取る
                 MeshCut.Cut(target, blade.transform.position, blade.transform.right, capMaterial, out GameObject leftObject, out GameObject rightObject);
                 Debug.Log("cut");
+                // 斬撃音を鳴らす
+                audioSource.PlayOneShot(sounds[2]);
+
+                //pointTextを表示してスコアを追加
+                if(target.tag != "Untagged") // タグが設定されていない場合無視
+                {
+                    Vector3 textPos = target.transform.position + Vector3.up*2;
+                    GameObject tmpPointText = Instantiate(pointText, textPos, Quaternion.identity, localCanvas.transform);
+                    if (target.tag == "Enemy")
+                    {
+                        tmpPointText.GetComponent<Text>().text = "40pt";
+                        scoreText.GetComponent<Score>().score += 40;
+                    }else if(target.tag == "Fluit")
+                    {
+                        tmpPointText.GetComponent<Text>().text = "回復";
+                    }
+                    Destroy(tmpPointText, 1);
+                }
 
                 //元のオブジェクトを削除
                 Destroy(target);
 
-                if (rightObject == null || leftObject == null) return;
+                //// もし返ってきたオブジェクトが存在しなければ終了
+                //if (rightObject == null || leftObject == null) return;
 
-                rightObject.AddComponent<MeshCollider>();
-                rightObject.GetComponent<MeshCollider>().convex = true;
-
-                Destroy(leftObject.GetComponent<BoxCollider>());
-                Destroy(leftObject.GetComponent<MeshCollider>());
-                leftObject.AddComponent<MeshCollider>().convex = true;
-                //leftObject.GetComponent<MeshCollider>().convex = true;
-
-                // プレイヤーを過ぎる直前にオブジェクトをデストロイする
-                float distance = rightObject.transform.position.z - transform.position.z - 1f;
-                Destroy(rightObject, distance / GetComponent<PlayerController>().speed);
-                Destroy(leftObject, distance / GetComponent<PlayerController>().speed);
+                // 1秒後に消える様に設定
+                Destroy(rightObject, 1);
+                Destroy(leftObject, 1);
             }
+            
             // マウスポジションを最新に更新
             lastMousePos = mousePos;
 
-            // ブレードの位置によって角度を変える処理
-            float Pos = blade.transform.position.x + 1;
-            float angleDef = 80 * Pos / 2 - 40;
+            // ブレードの位置によって角度を変える処理--------------------------------------------
+            // 横方向
+            float Pos = ray.direction.x;
+            float angleDef = Pos * 60;
             blade.transform.rotation = startQuat * Quaternion.AngleAxis(angleDef, Vector3.up);
-            Pos = blade.transform.position.y + 0.2f;
-            angleDef = -90 * Pos / 1.5f + 90;
+            // 縦方向
+            Pos = ray.direction.y;
+            angleDef = -Pos * 60;
             blade.transform.rotation *= Quaternion.AngleAxis(angleDef, Vector3.right);
+            nowQuat = blade.transform.rotation;
+            // -------------------------------------------------------------------------------
         }
 
-        // マウスボタンを押すのをやめたとき
+        // マウスボタンを押すのをやめたとき初期化する
         if (Input.GetMouseButtonUp(0))
         {
+            nowQuat = startQuat;
             cutStartPos = Vector3.zero;
             cutEndPos = Vector3.zero;
             // 剣の向きを調整するためにマウスのポジションを保存しておく変数

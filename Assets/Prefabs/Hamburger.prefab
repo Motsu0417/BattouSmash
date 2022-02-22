@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -6727049982660101861}
   m_Layer: 0
   m_Name: Hamburger
-  m_TagString: Untagged
+  m_TagString: Fluit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

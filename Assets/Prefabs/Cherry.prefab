@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -6929376116706779932}
   m_Layer: 0
   m_Name: Cherry
-  m_TagString: Untagged
+  m_TagString: Fluit
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

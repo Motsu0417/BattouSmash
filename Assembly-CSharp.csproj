@@ -64,12 +64,14 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Blade.cs" />
     <Compile Include="Assets\Scripts\Generator.cs" />
+    <Compile Include="Assets\Scripts\Goal.cs" />
+    <Compile Include="Assets\Scripts\Manager.cs" />
+    <Compile Include="Assets\Scripts\Menu.cs" />
     <Compile Include="Assets\Scripts\MeshCut.cs" />
     <Compile Include="Assets\Scripts\MeshMaker.cs" />
-    <Compile Include="Assets\Scripts\MeshTest.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
-    <Compile Include="Assets\Scripts\PlayerController.cs" />
-    <Compile Include="Assets\Scripts\TouchCheck.cs" />
+    <Compile Include="Assets\Scripts\Score.cs" />
+    <Compile Include="Assets\Scripts\StageController.cs" />
     <None Include="Assets\AddOns\Mg3D_Food\README.txt" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/user/Desktop/Unity/Projects_Original/BattouSmash/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>

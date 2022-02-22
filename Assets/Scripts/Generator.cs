@@ -4,29 +4,32 @@ using UnityEngine;
 
 public class Generator : MonoBehaviour
 {
-    public GameObject[] objects;
-    public float generateTime = 8.0f;
-    public float timer;
 
+    List<Transform> children = new List<Transform>();
     // Start is called before the first frame update
     void Start()
     {
-        timer = 0;
+        // 見た目を消す
+        Destroy(gameObject.GetComponent<MeshFilter>());
+
+        // 子オブジェクトを非表示
+        foreach (Transform child in transform)
+        {
+            child.gameObject.SetActive(false);
+            children.Add(child);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if(timer > generateTime)
+    // 子オブジェクトを再表示
+    void OnTriggerEnter(Collider collider)
+    { 
+        foreach (Transform child in children)
         {
-            if(objects.Length != 0)
-            {
-                GameObject obj = Instantiate(objects[Random.Range(0, objects.Length)],transform);
-                obj.AddComponent<Rigidbody>();
-                obj.AddComponent<BoxCollider>();
-            }
-            timer -= generateTime;
+            // 再表示
+            child.gameObject.SetActive(true);
+            // 自分の子オブジェクトの親を自分の親オブジェクトへ
+            child.parent = transform.parent;
         }
-        timer += Time.deltaTime;
+        Destroy(gameObject);
     }
 }
